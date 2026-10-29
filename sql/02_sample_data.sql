@@ -306,3 +306,4 @@ INSERT INTO order_items (order_item_id, order_id, menu_id, quantity, unit_price)
 -- [1차]: 2번 주문 품목 3 추가 - 플레인 크루아상 1개 (단가 3,800원)
 -- [2차]: 2번 영수증 손님이 음료와 함께 갓 나온 크루아상도 추가로 집어 든 항목입니다.
 (20, 2, 10, 1, 3800);
+

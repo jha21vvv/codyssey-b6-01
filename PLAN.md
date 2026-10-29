@@ -149,3 +149,4 @@ codyssey-b6-01/
 5. **Step 5: REFINE & REPORT & EVALUATOR RUNNER** -> `scripts/verify_requirements.py` 작성, 실행 결과 캡처 저장, `REPORT.md` 및 `README.md` 작성
 6. **Step 6: NOTEBOOKLM SOURCE CONSOLIDATION** -> `scripts/build_notebooklm_source.py` 작성, `NOTEBOOKLM_FULL_SOURCE.txt` 및 `NOTEBOOKLM_GUIDE.md` 완성
 7. **Step 7: 2-TIER COMMENTS FINAL AUDIT** -> 전 소스 코드 및 SQL 라인별 [1차 기술] + [2차 비유] 주석 무결성 최종 검증
+

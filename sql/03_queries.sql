@@ -343,3 +343,4 @@ SELECT order_id, total_amount, ordered_at
 FROM orders
 WHERE member_id = 1
 ORDER BY ordered_at DESC;
+

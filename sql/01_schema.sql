@@ -186,3 +186,4 @@ CREATE TABLE order_items (
     -- [2차]: 과거 영수증에 버젓이 찍힌 메뉴를 메뉴판 DB에서 완전히 삭제해버리면 영수증이 훼손되므로 막습니다.
     FOREIGN KEY (menu_id) REFERENCES menus (menu_id) ON DELETE RESTRICT
 );
+
