@@ -141,3 +141,89 @@ id | parent | notused | detail
 ================================================================================
 ```
 
+---
+
+## 🎯 6. [평가자 직접 테스트 전용 실시간 SQL 콘솔]
+
+평가자가 준비된 DB 환경 위에서 **원하는 SQL을 직접 손으로 쳐보고, 잘못된 데이터(9999번 가짜 손님 등)를 넣었을 때 진짜로 붉은 에러가 터지며 막히는지 실시간으로 검증**할 수 있는 전용 인터랙티브 CLI를 제공합니다.
+
+### 💻 실행 방법 (터미널에서 딱 한 줄 실행)
+```bash
+python scripts/evaluator_cli.py
+```
+
+실행하면 곧바로 `SQL> ` 입력창이 뜹니다. 아래 명령어들을 복사해서 직접 쳐보세요!
+
+---
+
+### 🧪 평가자가 직접 쳐보는 핵심 5대 검증 시나리오
+
+#### 1. [외래키 차단 테스트] 없는 손님(9999번)으로 주문 넣어보기 (❌ 에러 터져야 정상!)
+```sql
+SQL> INSERT INTO orders (member_id, total_amount, payment_method) VALUES (9999, 5000, 'CARD');
+```
+* **실제 터미널 출력 결과 (성공적으로 차단됨!)**:
+  ```text
+  ❌ [SQL 오류 발생 / 제약조건 정상 방어!]
+     ➔ 에러 유형 : IntegrityError
+     ➔ 상세 메시지: FOREIGN KEY constraint failed
+  ```
+  *(해석: 없는 9999번 손님을 외래키 보안 스위치가 감지하고 즉시 차단했습니다!)*
+
+---
+
+#### 2. [UNIQUE 차단 테스트] 이미 가입된 이메일로 또 가입해보기 (❌ 에러 터져야 정상!)
+```sql
+SQL> INSERT INTO members (email, name, phone) VALUES ('minjun.kim@example.com', '홍길동', '010-0000-0000');
+```
+* **실제 터미널 출력 결과**:
+  ```text
+  ❌ [SQL 오류 발생 / 제약조건 정상 방어!]
+     ➔ 에러 유형 : IntegrityError
+     ➔ 상세 메시지: UNIQUE constraint failed: members.email
+  ```
+
+---
+
+#### 3. [NOT NULL 차단 테스트] 이름 빼먹고 회원가입 시도해보기 (❌ 에러 터져야 정상!)
+```sql
+SQL> INSERT INTO members (email, name, phone) VALUES ('test@example.com', NULL, '010-0000-0000');
+```
+* **실제 터미널 출력 결과**:
+  ```text
+  ❌ [SQL 오류 발생 / 제약조건 정상 방어!]
+     ➔ 에러 유형 : IntegrityError
+     ➔ 상세 메시지: NOT NULL constraint failed: members.name
+  ```
+
+---
+
+#### 4. [LEFT JOIN 검증] 미구매 신규 회원 2명 발굴 쿼리 쳐보기
+```sql
+SQL> SELECT m.member_id, m.name, m.email FROM members m LEFT JOIN orders o ON m.member_id = o.member_id WHERE o.order_id IS NULL;
+```
+* **실제 터미널 출력 결과**:
+  ```text
+  member_id | name | email
+  ----------+------+-----------------------
+  9         | 장우진  | woojin.jang@example.com
+  10        | 한예원  | yewon.han@example.com
+  ```
+
+---
+
+#### 5. [인덱스 검증] 인덱스 만들고 실행 계획 확인해보기
+```sql
+SQL> CREATE INDEX IF NOT EXISTS idx_orders_member_ordered_at ON orders (member_id, ordered_at DESC);
+SQL> EXPLAIN QUERY PLAN SELECT order_id FROM orders WHERE member_id = 1 ORDER BY ordered_at DESC;
+```
+* **실제 터미널 출력 결과**:
+  ```text
+  detail
+  ---------------------------------------------------------------------
+  SEARCH orders USING INDEX idx_orders_member_ordered_at (member_id=?)
+  ```
+
+* 종료하려면 `exit`를 입력하시면 됩니다.
+
+
