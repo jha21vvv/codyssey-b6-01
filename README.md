@@ -152,15 +152,16 @@ id | parent | notused | detail
 python scripts/evaluator_cli.py
 ```
 
-실행하면 곧바로 `SQL> ` 입력창이 뜹니다. 아래 명령어들을 복사해서 직접 쳐보세요!
+실행하면 곧바로 `SQL> ` 입력창이 뜹니다.  
+**※ 복사할 때는 앞의 `SQL> ` 표시를 제외하고 실제 SQL 코드만 복사해서 붙여넣으세요!**
 
 ---
 
-### 🧪 평가자가 직접 쳐보는 핵심 5대 검증 시나리오
+### 🧪 평가자가 직접 복사해서 쳐보는 핵심 검증 명령어 모음
 
 #### 1. [외래키 차단 테스트] 없는 손님(9999번)으로 주문 넣어보기 (❌ 에러 터져야 정상!)
 ```sql
-SQL> INSERT INTO orders (member_id, total_amount, payment_method) VALUES (9999, 5000, 'CARD');
+INSERT INTO orders (member_id, total_amount, payment_method) VALUES (9999, 5000, 'CARD');
 ```
 * **실제 터미널 출력 결과 (성공적으로 차단됨!)**:
   ```text
@@ -174,7 +175,7 @@ SQL> INSERT INTO orders (member_id, total_amount, payment_method) VALUES (9999, 
 
 #### 2. [UNIQUE 차단 테스트] 이미 가입된 이메일로 또 가입해보기 (❌ 에러 터져야 정상!)
 ```sql
-SQL> INSERT INTO members (email, name, phone) VALUES ('minjun.kim@example.com', '홍길동', '010-0000-0000');
+INSERT INTO members (email, name, phone) VALUES ('minjun.kim@example.com', '홍길동', '010-0000-0000');
 ```
 * **실제 터미널 출력 결과**:
   ```text
@@ -187,7 +188,7 @@ SQL> INSERT INTO members (email, name, phone) VALUES ('minjun.kim@example.com', 
 
 #### 3. [NOT NULL 차단 테스트] 이름 빼먹고 회원가입 시도해보기 (❌ 에러 터져야 정상!)
 ```sql
-SQL> INSERT INTO members (email, name, phone) VALUES ('test@example.com', NULL, '010-0000-0000');
+INSERT INTO members (email, name, phone) VALUES ('test@example.com', NULL, '010-0000-0000');
 ```
 * **실제 터미널 출력 결과**:
   ```text
@@ -198,32 +199,80 @@ SQL> INSERT INTO members (email, name, phone) VALUES ('test@example.com', NULL, 
 
 ---
 
-#### 4. [LEFT JOIN 검증] 미구매 신규 회원 2명 발굴 쿼리 쳐보기
+#### 4. [연쇄 삭제 CASCADE 테스트] 1번 영수증 삭제 시 자식 품목들 자동 동반 삭제 확인
 ```sql
-SQL> SELECT m.member_id, m.name, m.email FROM members m LEFT JOIN orders o ON m.member_id = o.member_id WHERE o.order_id IS NULL;
+-- 1) 삭제 전 1번 주문 품목 개수 확인 (2건 조회됨)
+SELECT COUNT(*) FROM order_items WHERE order_id = 1;
+
+-- 2) 1번 주문 삭제 실행
+DELETE FROM orders WHERE order_id = 1;
+
+-- 3) 삭제 후 1번 주문 품목 개수 확인 (0건으로 연쇄 삭제 확인!)
+SELECT COUNT(*) FROM order_items WHERE order_id = 1;
+```
+
+---
+
+#### 5. [삭제 차단 RESTRICT 테스트] 주문 내역에 팔린 메뉴 삭제 시도 시 차단 확인 (❌ 에러 터져야 정상!)
+```sql
+DELETE FROM menus WHERE menu_id = 2;
 ```
 * **실제 터미널 출력 결과**:
   ```text
-  member_id | name | email
-  ----------+------+-----------------------
+  ❌ [SQL 오류 발생 / 제약조건 정상 방어!]
+     ➔ 에러 유형 : IntegrityError
+     ➔ 상세 메시지: FOREIGN KEY constraint failed
+  ```
+  *(해석: 과거 영수증에 2번 메뉴(카페라떼)가 찍혀있으므로 메뉴판에서 함부로 삭제하지 못하도록 가로막았습니다!)*
+
+---
+
+#### 6. [LEFT JOIN 검증] 미구매 신규 회원 2명 발굴 쿼리 쳐보기
+```sql
+SELECT m.member_id, m.name, m.email FROM members m LEFT JOIN orders o ON m.member_id = o.member_id WHERE o.order_id IS NULL;
+```
+* **실제 터미널 출력 결과**:
+  ```text
+  member_id | name | email                  
+  ----------+------+------------------------
   9         | 장우진  | woojin.jang@example.com
-  10        | 한예원  | yewon.han@example.com
+  10        | 한예원  | yewon.han@example.com  
   ```
 
 ---
 
-#### 5. [인덱스 검증] 인덱스 만들고 실행 계획 확인해보기
+#### 7. [다중 정렬 검증] 2회 이상 단골손님 집계 및 주문횟수(1순위) ➔ 결제액(2순위) 정렬
 ```sql
-SQL> CREATE INDEX IF NOT EXISTS idx_orders_member_ordered_at ON orders (member_id, ordered_at DESC);
-SQL> EXPLAIN QUERY PLAN SELECT order_id FROM orders WHERE member_id = 1 ORDER BY ordered_at DESC;
+SELECT m.name AS member_name, COUNT(o.order_id) AS repeat_orders, SUM(o.total_amount) AS total_spent FROM members m INNER JOIN orders o ON m.member_id = o.member_id WHERE o.order_status IN ('COMPLETED', 'PAID') GROUP BY m.member_id, m.name HAVING COUNT(o.order_id) >= 2 ORDER BY repeat_orders DESC, total_spent DESC;
 ```
 * **실제 터미널 출력 결과**:
   ```text
-  detail
+  member_name | repeat_orders | total_spent
+  ------------+---------------+------------
+  김민준         | 3             | 34800      
+  강하은         | 2             | 67800      
+  이지은         | 2             | 30300      
+  ```
+  *(해석: 2회 동점자 중 결제액이 더 큰 강하은 손님이 이지은 손님보다 위에 2등으로 정렬됨!)*
+
+---
+
+#### 8. [인덱스 검증] 복합 B-Tree 인덱스 생성 및 실행 계획 확인해보기
+```sql
+CREATE INDEX IF NOT EXISTS idx_orders_member_ordered_at ON orders (member_id, ordered_at DESC);
+EXPLAIN QUERY PLAN SELECT order_id FROM orders WHERE member_id = 1 ORDER BY ordered_at DESC;
+```
+* **실제 터미널 출력 결과**:
+  ```text
+  detail                                                               
   ---------------------------------------------------------------------
   SEARCH orders USING INDEX idx_orders_member_ordered_at (member_id=?)
   ```
 
-* 종료하려면 `exit`를 입력하시면 됩니다.
+---
+
+### 💡 콘솔 조작 단축키 및 명령어
+* `help` : 추천 명령어 도움말 다시 보기
+* `exit` 또는 `quit` : CLI 콘솔 종료
 
 

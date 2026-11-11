@@ -54,10 +54,20 @@ def print_help():
 3. [NOT NULL 제약조건 차단 테스트 (이름 누락 에러 터져야 정상!)]
    INSERT INTO members (email, name, phone) VALUES ('test@example.com', NULL, '010-0000-0000');
 
-4. [미구매 회원 2명 발굴 쿼리]
+4. [연쇄 삭제 CASCADE 테스트 (1번 주문 삭제 시 자식 품목도 함께 0건 삭제 확인)]
+   DELETE FROM orders WHERE order_id = 1;
+   SELECT COUNT(*) FROM order_items WHERE order_id = 1;
+
+5. [삭제 차단 RESTRICT 테스트 (팔린 2번 메뉴 삭제 시도 시 에러 차단 확인)]
+   DELETE FROM menus WHERE menu_id = 2;
+
+6. [미구매 회원 2명 발굴 쿼리 (LEFT JOIN + IS NULL)]
    SELECT m.member_id, m.name, m.email FROM members m LEFT JOIN orders o ON m.member_id = o.member_id WHERE o.order_id IS NULL;
 
-5. [인덱스 실행 계획 확인 (인덱스 사용 여부)]
+7. [단골 집계 및 다중 정렬 (1순위: 횟수, 2순위: 결제액)]
+   SELECT m.name, COUNT(o.order_id) AS cnt, SUM(o.total_amount) AS total FROM members m INNER JOIN orders o ON m.member_id = o.member_id WHERE o.order_status IN ('COMPLETED', 'PAID') GROUP BY m.member_id, m.name HAVING COUNT(o.order_id) >= 2 ORDER BY cnt DESC, total DESC;
+
+8. [인덱스 실행 계획 확인 (인덱스 사용 여부)]
    CREATE INDEX IF NOT EXISTS idx_orders_member_ordered_at ON orders (member_id, ordered_at DESC);
    EXPLAIN QUERY PLAN SELECT order_id FROM orders WHERE member_id = 1 ORDER BY ordered_at DESC;
 
