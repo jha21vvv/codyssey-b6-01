@@ -69,9 +69,21 @@ python scripts/verify_requirements.py
 
 ---
 
-## 📊 4. 핵심 엔티티 관계도 (ERD)
+## 📊 4. 핵심 엔티티 관계도 (ERD) 및 아키텍처 다이어그램
 
-![스마트 카페 ERD](file:///c:/Users/안재현/Documents/24_code/2609_codyssey/codyssey-b6-01/diagrams/01_erd_diagram.png)
+> ※ 깃허브 웹, VS Code 프리뷰 등 모든 마크다운 뷰어에서 이미지가 엑박 없이 정상 출력되도록 상대 경로(`diagrams/*.png`)로 연결되어 있습니다.
+
+### 4.1 종합 엔티티 관계도 (ERD)
+![스마트 카페 ERD](diagrams/01_erd_diagram.png)
+
+### 4.2 1:N (일대다) 관계 및 외래키(FK) 참조 원리
+![1:N 관계 다이어그램](diagrams/02_one_to_many_relation.png)
+
+### 4.3 INNER JOIN vs LEFT JOIN 시각적 비교
+![조인 원리 다이어그램](diagrams/03_sql_join_principles.png)
+
+### 4.4 SQL 엔진 실제 내부 쿼리 실행 파이프라인
+![SQL 실행 파이프라인](diagrams/04_query_pipeline_flow.png)
 
 ---
 
